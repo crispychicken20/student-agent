@@ -267,9 +267,9 @@ def tasks_to_notion_md(tasks: List[Task]) -> str:
 
 
 # ---------- UI ----------
-st.set_page_config(page_title="Student Efficiency Agent", page_icon="⚙️", layout="wide")
-st.title("⚙️ Student Efficiency Agent")
-st.caption("Paste syllabus/email text → extract tasks → auto-plan → export to Calendar/CSV/Notion.")
+st.set_page_config(page_title="Student Planner Agent", page_icon="⚙️", layout="wide")
+st.title("⚙️ Student Planner Agent")
+st.caption("Paste syllabus/email/task(s) text → extract tasks → auto-plan → export to Calendar/CSV/Notion.")
 
 with st.sidebar:
     st.subheader("Planner Settings")
