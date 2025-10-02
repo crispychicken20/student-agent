@@ -1,0 +1,6 @@
+streamlit
+python-dateutil
+dateparser
+pydantic
+PyPDF2
+openai
