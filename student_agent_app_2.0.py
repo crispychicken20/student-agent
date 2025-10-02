@@ -273,7 +273,7 @@ st.caption("Paste syllabus/email/task(s) text → extract tasks → auto-plan �
 
 with st.sidebar:
     st.subheader("Planner Settings")
-    daily_hours = st.slider("Max hours per day", 0.5, 6.0, DEFAULT_DAILY_HOURS, 0.5)
+    daily_hours = st.slider("Max hours per day", 0.5, 12.0, DEFAULT_DAILY_HOURS, 0.5)
     start_h = st.number_input("Work start hour (24h)", 5, 12, WORK_START.hour)
     end_h = st.number_input("Work end hour (24h)", 13, 23, WORK_END.hour)
     WORK_START = time(int(start_h), 0)
