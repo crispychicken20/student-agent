@@ -5,7 +5,8 @@ import student_agent_core as core
 
 st.set_page_config(page_title="Student Efficiency Agent", page_icon="⚙️", layout="wide")
 st.title("⚙️ Student Efficiency Agent")
-st.caption("Paste syllabus/email text → extract tasks → auto-plan → export to Calendar/CSV/Notion.")
+st.caption("Paste syllabus/email/task text → extract tasks → auto-plan → export to Calendar/CSV/Notion.")
+st.header("Use to convert any tasks to a viable calendar to work on tasks.")
 
 with st.sidebar:
     st.subheader("Planner Settings")
