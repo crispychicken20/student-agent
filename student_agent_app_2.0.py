@@ -1,3 +1,4 @@
+
 import os, io, re, csv, uuid
 from datetime import datetime, timedelta, time
 from typing import List, Optional, Tuple
@@ -243,26 +244,32 @@ def tasks_to_csv(tasks: List[Task]) -> str:
         writer.writerow([t.id, t.title, t.due.isoformat() if t.due else "", t.est_minutes, t.tag or "", t.priority, t.source or ""])
     return output.getvalue()
 
+FAR_FUTURE = datetime(9999, 12, 31, tzinfo=APP_TZ)  # tz-aware fallback
+
 def tasks_to_notion_md(tasks: List[Task]) -> str:
-    # use a TZ-aware "far future" as fallback so comparisons with tz-aware due dates work
-    far_future = datetime(9999, 12, 31, tzinfo=APP_TZ)
+    def sort_key(x: Task):
+        # normalize due to tz-aware for consistent comparisons
+        due = x.due
+        if due and due.tzinfo is None:
+            due = due.replace(tzinfo=APP_TZ)
+        return (x.priority, due or FAR_FUTURE)
 
     lines = ["# Tasks", ""]
-    # NOTE: use x, not t, inside the lambda
-    for t in sorted(tasks, key=lambda x: (x.priority, x.due or far_future)):
-        due = t.due.astimezone(APP_TZ).strftime("%a %b %d, %I:%M %p") if t.due else "—"
+    for t in sorted(tasks, key=sort_key):
+        due_str = t.due.astimezone(APP_TZ).strftime("%a %b %d, %I:%M %p") if t.due else "—"
         lines.append(
             f"- **P{t.priority}** {t.title}  \n"
             f"  • Tag: `{t.tag or '-'}`  \n"
             f"  • Est: {t.est_minutes}m  \n"
-            f"  • Due: {due}"
+            f"  • Due: {due_str}"
         )
     return "\n".join(lines)
+
 
 # ---------- UI ----------
 st.set_page_config(page_title="Student Efficiency Agent", page_icon="⚙️", layout="wide")
 st.title("⚙️ Student Efficiency Agent")
-st.caption("Paste syllabus/email/task text → extract tasks → auto-plan → export to Calendar/CSV/Notion.")
+st.caption("Paste syllabus/email text → extract tasks → auto-plan → export to Calendar/CSV/Notion.")
 
 with st.sidebar:
     st.subheader("Planner Settings")
@@ -350,6 +357,8 @@ if tasks:
             st.info("No blocks created (perhaps tasks have no estimates, or all past?)")
 
     blocks = st.session_state.get("blocks_cache", [])
+
+    # Preview if any blocks
     if blocks:
         st.write("Preview (first 10):")
         st.table([{
@@ -357,15 +366,39 @@ if tasks:
             "What": b["title"]
         } for b in blocks[:10]])
 
-        # Exports
-        ics_str = to_ics(blocks)
-        csv_str = tasks_to_csv(tasks)
-        md_str = tasks_to_notion_md(tasks)
+    # --- Exports: always compute so buttons work ---
+    ics_str = to_ics(blocks) if blocks else "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//StudentAgent//EN\nEND:VCALENDAR\n"
+    csv_str = tasks_to_csv(tasks) if tasks else "id,title,due,est_minutes,tag,priority,source\n"
+    md_str = tasks_to_notion_md(tasks) if tasks else "# Tasks\n\n(No tasks extracted)\n"
 
-        st.download_button("⬇️ Download Calendar (.ics)", data=ics_str, file_name="study_plan.ics", mime="text/calendar")
-        st.download_button("⬇️ Download Tasks (.csv)", data=csv_str, file_name="tasks.csv", mime="text/csv")
-        st.download_button("⬇️ Copy Notion Markdown", data=md_str, file_name="tasks_notion.md", mime="text/markdown")
+    def as_bytes(data):
+        if isinstance(data, bytes):
+            return data
+        if isinstance(data, str):
+            return data.encode("utf-8")
+        return str(data or "").encode("utf-8")
 
-        st.caption("Import the .ics into Google Calendar (Settings → Import & Export), or drag/drop into Apple Calendar.")
+    st.download_button(
+        "⬇️ Download Calendar (.ics)",
+        data=as_bytes(ics_str),
+        file_name="study_plan.ics",
+        mime="text/calendar",
+    )
+
+    st.download_button(
+        "⬇️ Download Tasks (.csv)",
+        data=as_bytes(csv_str),
+        file_name="tasks.csv",
+        mime="text/csv",
+    )
+
+    st.download_button(
+        "⬇️ Copy Notion Markdown",
+        data=as_bytes(md_str),
+        file_name="tasks_notion.md",
+        mime="text/markdown",
+    )
+
+    st.text_area("Notion Markdown (copy from here if you want):", md_str, height=220)
 else:
     st.info("Add inputs and click **Extract** to get started.")
